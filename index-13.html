@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html{color-scheme:light}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Wheelchair Ramp Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout concept: a shop drawing sheet. A narrow input rail on the left, the drawings and lists stacked on the right. */
+:root{
+  --bg:#E9EDF0; --surface:#F6F8F9; --ink:#15212B; --muted:#586874; --line:#C5CFD6; --line-soft:#D9E1E6;
+  --accent:#D4470B; --accent-ink:#FFFFFF; --accent-soft:#FBE3D6;
+  --ply:#EBCB95; --ply-line:#9B7440; --stringer:#7A5A34; --leg:#5A4326; --slab:#8E9BA5;
+  --ok:#1B7A4B; --ok-soft:#DDF0E5; --warn:#8A5200; --warn-soft:#FAEBCB; --bad:#B3261E; --bad-soft:#F8DDDA;
+  --font-display:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;
+  --font-body:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E161C; --surface:#152028; --ink:#E7EEF3; --muted:#92A3B0; --line:#2B3B47; --line-soft:#213039;
+    --accent:#FF8444; --accent-ink:#1A0D05; --accent-soft:#3A2113;
+    --ply:#4A3A24; --ply-line:#D2A667; --stringer:#C89A5F; --leg:#D9B07A; --slab:#52626D;
+    --ok:#5ED19A; --ok-soft:#12332A; --warn:#F2B45A; --warn-soft:#352A12; --bad:#FF8A80; --bad-soft:#3B1D1B;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E161C; --surface:#152028; --ink:#E7EEF3; --muted:#92A3B0; --line:#2B3B47; --line-soft:#213039;
+  --accent:#FF8444; --accent-ink:#1A0D05; --accent-soft:#3A2113;
+  --ply:#4A3A24; --ply-line:#D2A667; --stringer:#C89A5F; --leg:#D9B07A; --slab:#52626D;
+  --ok:#5ED19A; --ok-soft:#12332A; --warn:#F2B45A; --warn-soft:#352A12; --bad:#FF8A80; --bad-soft:#3B1D1B;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5}
+.wrap{max-width:1200px;margin:0 auto;padding-inline:16px;padding-block:22px 64px}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance}
+h1{font-size:clamp(2.1rem,6vw,3.4rem);line-height:1;font-weight:700;letter-spacing:.005em}
+.lead{margin:10px 0 0;max-width:62ch;color:var(--muted);font-size:1.05rem}
+.head{padding-bottom:22px;border-bottom:2px solid var(--ink);margin-bottom:24px}
+.grid{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:32px;align-items:start}
+@media (max-width:960px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+/* input rail */
+.rail{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px 16px 16px}
+@media (min-width:961px){.rail{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}}
+.rail h2{font-size:1.15rem;letter-spacing:.09em;text-transform:uppercase;font-weight:600;margin-bottom:14px}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+.field{display:flex;flex-direction:column;gap:6px;margin:0 0 16px;min-width:0}
+.field>label,.field>legend,.lab{font-size:.78rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:0}
+.field small.hint{color:var(--muted);font-size:.84rem;line-height:1.35}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0}
+.unit{position:relative;min-width:0}
+.unit input,.unit select{width:100%}
+.unit .u{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--muted);font:500 .8rem var(--font-mono);pointer-events:none}
+input[type=number],select{height:46px;font:500 1rem var(--font-mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:0 34px 0 12px;min-width:0}
+select{padding-right:12px;font-family:var(--font-body)}
+input[type=number]:disabled{opacity:.6}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible,.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--bg)}
+.seg label{display:block;min-width:0}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:46px;padding:4px 6px;text-align:center;font-weight:600;font-size:.95rem;cursor:pointer;border-left:1px solid var(--line);line-height:1.15}
+.seg label:first-child span{border-left:0}
+.seg small{font:500 .72rem var(--font-mono);color:var(--muted)}
+.seg input:checked+span{background:var(--ink);color:var(--bg)}
+.seg input:checked+span small{color:var(--bg);opacity:.8}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:600 .88rem var(--font-mono);padding:0 12px;min-height:38px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.check{display:flex;align-items:center;gap:8px;font-size:.92rem;color:var(--ink);min-height:34px}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.btn{font:600 .95rem var(--font-body);min-height:44px;padding:0 16px;border-radius:4px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn:hover{border-color:var(--accent)}
+.rail .btn{width:100%}
+hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0 16px}
+
+/* results */
+#out{min-width:0;transition:opacity .15s}
+#out.stale .sheet{opacity:.4}
+.status{margin:0 0 16px;padding:12px 14px;background:var(--bad-soft);color:var(--bad);border-radius:4px;font-weight:600}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));border-block:1px solid var(--line);margin-bottom:30px}
+.key{padding:14px 16px 14px 0;min-width:0}
+.key+.key{padding-left:16px;border-left:1px solid var(--line)}
+@media (max-width:640px){.key:nth-child(odd){padding-left:0;border-left:0}.key:nth-child(n+3){border-top:1px solid var(--line)}}
+.key .k{font-size:.74rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.key .v{font:700 clamp(1.7rem,4vw,2.25rem)/1.1 var(--font-display);margin-top:2px;overflow-wrap:anywhere}
+.key .s{font-size:.86rem;color:var(--muted);margin-top:2px}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font:600 .8rem var(--font-body)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.tight{background:var(--warn-soft);color:var(--warn)}
+.pill.no{background:var(--bad-soft);color:var(--bad)}
+.pill.na{background:var(--line-soft);color:var(--muted)}
+.sheet{margin:0 0 38px;min-width:0}
+.sheet>h2{font-size:1.5rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.sheet h3{font-size:1.2rem;font-weight:600;margin:22px 0 8px}
+.sheet h3 small{font:500 .82rem var(--font-body);color:var(--muted);margin-left:6px;letter-spacing:0}
+.fig{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;overflow-x:auto}
+.fig figcaption,.cap{font-size:.86rem;color:var(--muted);margin-top:8px}
+figure{margin:0 0 18px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th{font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right}
+td.n,.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.note{color:var(--muted);font-size:.86rem;min-width:200px}
+.buy td.n.big{font-size:1.15rem;font-weight:500}
+dl.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0;margin:0;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+dl.kv>*{padding:9px 12px;border-bottom:1px solid var(--line-soft);margin:0}
+dl.kv dt{font-weight:500}
+dl.kv dt small{display:block;color:var(--muted);font-weight:400;font-size:.84rem}
+dl.kv dd{font-family:var(--font-mono);text-align:right;white-space:nowrap}
+dl.kv>*:nth-last-child(-n+2){border-bottom:0}
+.callout{padding:11px 14px;border-radius:4px;margin:0 0 10px;font-size:.95rem;background:var(--warn-soft);color:var(--warn)}
+.callout b{font-weight:700}
+.callout.info{background:var(--line-soft);color:var(--ink)}
+ol.steps,ul.plain{margin:8px 0 0;padding-left:1.3rem;max-width:72ch}
+ol.steps li,ul.plain li{margin:0 0 7px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center}
+.actions .btn{min-width:200px}
+#copyMsg{font-size:.9rem;color:var(--ok);min-height:1.2em}
+#copyBox{width:100%;min-height:200px;margin-top:10px;font:.82rem/1.4 var(--font-mono);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:10px}
+details.how{margin-top:24px;border-top:1px solid var(--line);padding-top:14px}
+details.how summary{cursor:pointer;font-weight:600}
+details.how ul{max-width:74ch;padding-left:1.2rem}
+details.how li{margin-bottom:6px}
+
+/* drawings */
+.draw{width:100%;height:auto;display:block;min-width:340px}
+.draw .ply{fill:var(--ply);stroke:var(--ply-line);stroke-width:1.4}
+.draw .strl{stroke:var(--stringer);stroke-width:1;opacity:.7}
+.draw .post{fill:var(--leg)}
+.draw .arr{stroke:var(--accent);stroke-width:2.4;fill:none}
+.draw .arrh{fill:var(--accent)}
+.draw .lbl{font:600 13px var(--font-body);fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:4px;stroke-linejoin:round;text-anchor:middle}
+.draw .sub{font:500 11px var(--font-mono);fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:3.5px;stroke-linejoin:round;text-anchor:middle}
+.draw .dim{stroke:var(--muted);stroke-width:1;fill:none}
+.draw .dimt{font:500 11.5px var(--font-mono);fill:var(--muted);text-anchor:middle}
+.draw .slab{stroke:var(--slab);stroke-width:2.5}
+.draw .band{fill:var(--stringer);fill-opacity:.32;stroke:var(--stringer);stroke-width:1}
+.draw .leg{stroke:var(--leg);stroke-width:2.2}
+.draw .deck{stroke:var(--ply-line);stroke-width:3.4;fill:none}
+.draw .pband{fill:var(--ply);stroke:var(--ply-line);stroke-width:1.2}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <noscript><p class="status" style="background:var(--warn-soft);color:var(--warn);margin-bottom:16px">Scripts are off, so this page shows the 24 inch L-turn example and the inputs will not change it. Open the file in a browser with scripts on to use your own numbers.</p></noscript>
+  <header class="head">
+    <h1>Wheelchair Ramp Planner</h1>
+    <p class="lead">Enter the rise and the layout. You get ramp lengths, a cut list, a shopping list and drawings to build from. Enter sizes in inches.</p>
+  </header>
+
+  <div class="grid">
+    <aside class="rail" aria-label="Ramp inputs">
+      <h2>Your ramp</h2>
+      <form id="form" autocomplete="off" onsubmit="return false">
+        <fieldset class="field">
+          <legend>Layout</legend>
+          <div class="seg" role="radiogroup" aria-label="Layout">
+            <label><input type="radio" name="layout" value="S"><span>Straight</span></label>
+            <label><input type="radio" name="layout" value="L" checked><span>L-turn<small>90°</small></span></label>
+            <label><input type="radio" name="layout" value="U"><span>U-turn<small>180°</small></span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="field" id="turnField">
+          <legend>Turn direction</legend>
+          <div class="seg" role="radiogroup" aria-label="Turn direction">
+            <label><input type="radio" name="turn" value="left" checked><span>Left</span></label>
+            <label><input type="radio" name="turn" value="right"><span>Right</span></label>
+          </div>
+          <small class="hint">As you walk up the first ramp. Only changes the drawing.</small>
+        </fieldset>
+
+        <div class="field">
+          <label for="rise">Total rise</label>
+          <div class="unit"><input id="rise" type="number" inputmode="decimal" step="any" value="24"><span class="u">in</span></div>
+          <small class="hint">Slab to the top surface the ramp ends at.</small>
+        </div>
+
+        <div class="field">
+          <label for="run">Slope: run per 1 in of rise</label>
+          <div class="unit"><input id="run" type="number" inputmode="decimal" step="any" value="12"><span class="u">: 1</span></div>
+          <div class="chips" id="chips" role="group" aria-label="Slope presets">
+            <button type="button" class="chip" data-run="12">1:12</button>
+            <button type="button" class="chip" data-run="10">1:10</button>
+            <button type="button" class="chip" data-run="8">1:8</button>
+            <button type="button" class="chip" data-run="6">1:6</button>
+          </div>
+          <small class="hint" id="slopeNote"></small>
+        </div>
+
+        <div class="field" id="platFieldH">
+          <label for="platH">Platform height</label>
+          <div class="unit"><input id="platH" type="number" inputmode="decimal" step="any" value="12"><span class="u">in</span></div>
+          <label class="check"><input id="auto" type="checkbox" checked> Split the rise evenly</label>
+        </div>
+
+        <div class="field">
+          <label for="width">Clear width between curbs</label>
+          <div class="unit"><input id="width" type="number" inputmode="decimal" step="any" value="42"><span class="u">in</span></div>
+        </div>
+
+        <div class="field" id="platFieldS">
+          <span class="lab">Platform deck size</span>
+          <div class="row2">
+            <div class="unit"><input id="pw" aria-label="Platform length" type="number" inputmode="decimal" step="any" value="63"><span class="u">in</span></div>
+            <div class="unit"><input id="pd" aria-label="Platform depth" type="number" inputmode="decimal" step="any" value="63"><span class="u">in</span></div>
+          </div>
+          <small class="hint">Length along the first ramp, then depth. 63 leaves 60 clear inside the curbs.</small>
+        </div>
+
+        <div class="field">
+          <label for="stringer">Stringer lumber</label>
+          <select id="stringer">
+            <option value="2x4">2x4 on edge</option>
+            <option value="2x6" selected>2x6 on edge</option>
+            <option value="2x8">2x8 on edge</option>
+          </select>
+        </div>
+
+        <hr class="sep">
+        <div class="field">
+          <span class="lab">Floor space you have (example)</span>
+          <div class="row2">
+            <div class="unit"><input id="sw" aria-label="Floor space width in feet" type="number" inputmode="decimal" step="any" value="20"><span class="u">ft</span></div>
+            <div class="unit"><input id="sd" aria-label="Floor space depth in feet" type="number" inputmode="decimal" step="any" value="20"><span class="u">ft</span></div>
+          </div>
+          <small class="hint">Optional. Clear the field to skip the fit check.</small>
+        </div>
+        <button type="button" class="btn ghost" id="reset">Reset to the example</button>
+      </form>
+    </aside>
+
+    <main id="out" aria-live="polite">
+      <p class="status" id="status" role="alert" hidden></p>
+
+      <section class="sheet" aria-label="Key figures">
+        <div class="keys" id="keys"><div class="key"><div class="k">Total rise</div><div class="v">24″</div><div class="s">1:12 slope · 4.8° · 8.3% grade</div></div><div class="key"><div class="k">Ramp run</div><div class="v">12′ + 12′</div><div class="s">plus a 5′ 3″ × 5′ 3″ platform</div></div><div class="key"><div class="k">Footprint</div><div class="v">17′ 3″ × 17′ 3″</div><div class="s">Platform at 12″, 45″ wide decks</div></div><div class="key"><div class="k">Floor space</div><div class="v"><span class="pill ok">Fits</span></div><div class="s">Fits with 33″ to spare in the tight direction.</div></div></div>
+      </section>
+
+      <section class="sheet">
+        <h2>Drawings</h2>
+        <figure class="fig"><div id="plan"><svg class="draw" viewBox="0 0 560 430.0" role="img" aria-label="Plan view of the ramp"><rect class="ply" x="83.0" y="299.7" width="250.4" height="78.3"></rect><line class="strl" x1="83.0" x2="333.4" y1="376.7" y2="376.7"></line><line class="strl" x1="83.0" x2="333.4" y1="351.5" y2="351.5"></line><line class="strl" x1="83.0" x2="333.4" y1="326.3" y2="326.3"></line><line class="strl" x1="83.0" x2="333.4" y1="301.0" y2="301.0"></line><rect class="ply" x="333.4" y="268.4" width="109.6" height="109.6"></rect><line class="strl" y1="268.4" y2="378.0" x1="334.7" x2="334.7"></line><line class="strl" y1="268.4" y2="378.0" x1="361.5" x2="361.5"></line><line class="strl" y1="268.4" y2="378.0" x1="388.2" x2="388.2"></line><line class="strl" y1="268.4" y2="378.0" x1="415.0" x2="415.0"></line><line class="strl" y1="268.4" y2="378.0" x1="441.7" x2="441.7"></line><rect class="post" x="333.4" y="373.7" width="6.1" height="6.1"></rect><rect class="post" x="385.2" y="373.7" width="6.1" height="6.1"></rect><rect class="post" x="436.9" y="373.7" width="6.1" height="6.1"></rect><rect class="post" x="333.4" y="266.7" width="6.1" height="6.1"></rect><rect class="post" x="385.2" y="266.7" width="6.1" height="6.1"></rect><rect class="post" x="436.9" y="266.7" width="6.1" height="6.1"></rect><rect class="ply" x="364.7" y="18.0" width="78.3" height="250.4"></rect><line class="strl" y1="18.0" y2="268.4" x1="366.0" x2="366.0"></line><line class="strl" y1="18.0" y2="268.4" x1="391.3" x2="391.3"></line><line class="strl" y1="18.0" y2="268.4" x1="416.5" x2="416.5"></line><line class="strl" y1="18.0" y2="268.4" x1="441.7" x2="441.7"></line><line class="arr" x1="138.2" y1="338.9" x2="278.2" y2="338.9"></line><polygon class="arrh" points="285.2,338.9 276.8,345.2 276.8,332.6"></polygon><text class="lbl" x="208.2" y="326.9">RAMP 1</text><text class="sub" x="208.2" y="362.9">0″ → 12″</text><text class="lbl" x="388.2" y="321.2">PLATFORM</text><text class="sub" x="388.2" y="337.2">12″ high</text><line class="arr" x1="403.9" y1="213.2" x2="403.9" y2="73.2"></line><polygon class="arrh" points="403.9,66.2 410.2,74.6 397.6,74.6"></polygon><text class="lbl" x="403.9" y="131.2">RAMP 2</text><text class="sub" x="403.9" y="167.2">12″ → 24″</text><path class="dim" d="M83.0 390.0V398.0M83.0 394.0H443.0M443.0 390.0V398.0"></path><text class="dimt" x="263.0" y="411.0">17′ 3″</text><path class="dim" d="M453.0 18.0H461.0M457.0 18.0V378.0M453.0 378.0H461.0"></path><text class="dimt" transform="rotate(90 472.0 198.0)" x="472.0" y="198.0">17′ 3″</text></svg></div><figcaption id="planCap">Plan view, to scale. Arrows point up the ramp. Thin lines are the stringers and platform joists.</figcaption></figure>
+        <figure class="fig"><div id="profile"><svg class="draw" viewBox="0 0 560 202.9" role="img" aria-label="Side view of the ramp"><line class="slab" x1="26" x2="544" y1="152.9" y2="152.9"></line><polygon class="band" points="40.0,156.4 233.6,100.0 233.6,125.9 141.1,152.9 40.0,152.9"></polygon><line class="leg" x1="169.0" x2="169.0" y1="152.9" y2="144.8"></line><line class="deck" x1="40.0" y1="152.9" x2="233.6" y2="96.5"></line><text class="sub" x="136.8" y="112.7">1:12 · 4.8°</text><text class="dimt" x="136.8" y="172.9">12′ run</text><rect class="pband" x="233.6" y="96.5" width="108.9" height="3.5"></rect><rect class="band" x="233.6" y="100.0" width="108.9" height="25.9"></rect><line class="leg" x1="236.6" x2="236.6" y1="152.9" y2="125.9"></line><line class="leg" x1="339.4" x2="339.4" y1="152.9" y2="125.9"></line><line class="leg" x1="288.0" x2="288.0" y1="152.9" y2="125.9"></line><text class="sub" x="288.0" y="88.5">12″</text><text class="dimt" x="288.0" y="172.9">6′ 9″ across</text><polygon class="band" points="342.4,100.0 536.0,43.5 536.0,69.5 342.4,125.9"></polygon><line class="leg" x1="407.0" x2="407.0" y1="152.9" y2="107.1"></line><line class="leg" x1="471.5" x2="471.5" y1="152.9" y2="88.3"></line><line class="leg" x1="533.6" x2="533.6" y1="152.9" y2="70.2"></line><line class="deck" x1="342.4" y1="96.5" x2="536.0" y2="40.0"></line><text class="sub" x="439.2" y="56.2">1:12 · 4.8°</text><text class="dimt" x="439.2" y="172.9">12′ run</text><text class="sub" x="532.0" y="31.0">24″</text><text class="dimt" x="26" y="172.9" style="text-anchor:start">slab</text></svg></div><figcaption id="profCap">Side view, unrolled along the path of travel. Vertical scale ×3.5. Dark lines under the ramp are the legs.</figcaption></figure>
+      </section>
+
+      <section class="sheet">
+        <h2>Cut list</h2>
+        <div id="cuts"><h3>Ramp 1<small>0″ to 12″ over a 12′ run · sloped length 12′ ½″</small></h3><div class="tbl"><table><thead><tr><th>Part</th><th>Lumber</th><th class="n">Qty</th><th class="n">Cut length</th><th>Note</th></tr></thead><tbody><tr><td>Stringer</td><td class="num">2x6</td><td class="n">4</td><td class="n">12′ 1″</td><td class="note">Top edge follows the slope. Saw 4.8° off square for the plumb ends.</td></tr><tr><td>Leg at 8′</td><td class="num">2x4</td><td class="n">4</td><td class="n">1¾″</td><td class="note">Measured at the leg centre. Bevel the top to 4.8°.</td></tr><tr><td>Blocking</td><td class="num">2x6</td><td class="n">6</td><td class="n">13″</td><td class="note">Between stringers at every leg row and plywood joint.</td></tr><tr><td>Slab toe cleat</td><td class="num">2x4</td><td class="n">1</td><td class="n">45″</td><td class="note">Anchored to the slab so the low end cannot creep.</td></tr><tr><td>Curb, on edge</td><td class="num">2x4</td><td class="n">2</td><td class="n">12′ ¾″</td><td class="note">Screwed down onto the deck at each edge.</td></tr><tr><td>Decking panel</td><td class="num">¾″ ply</td><td class="n">1</td><td class="n">45″ × 8′</td><td class="note">Rip from a 4 × 8 sheet. Land every joint on a stringer or a block.</td></tr><tr><td>Decking panel</td><td class="num">¾″ ply</td><td class="n">1</td><td class="n">45″ × 4′ ½″</td><td class="note">Rip from a 4 × 8 sheet. Land every joint on a stringer or a block.</td></tr></tbody></table></div><h3>Platform<small>5′ 3″ × 5′ 3″ deck at 12″, 2x6 joists on 4x4 posts</small></h3><div class="tbl"><table><thead><tr><th>Part</th><th>Lumber</th><th class="n">Qty</th><th class="n">Cut length</th><th>Note</th></tr></thead><tbody><tr><td>Header</td><td class="num">2x6</td><td class="n">2</td><td class="n">5′ 3″</td><td class="note">Along the width, at both ends.</td></tr><tr><td>Joist</td><td class="num">2x6</td><td class="n">5</td><td class="n">5′</td><td class="note">Between the headers, 16″ on centre.</td></tr><tr><td>Post</td><td class="num">4x4</td><td class="n">6</td><td class="n">5¾″</td><td class="note">Under the headers, 48″ apart or less.</td></tr><tr><td>Curb, on edge</td><td class="num">2x4</td><td class="n">2</td><td class="n">18″</td><td class="note">Open edges of the platform. Skip any edge that sits against a wall.</td></tr><tr><td>Curb, on edge</td><td class="num">2x4</td><td class="n">2</td><td class="n">5′ 3″</td><td class="note">Open edges of the platform. Skip any edge that sits against a wall.</td></tr><tr><td>Decking panel</td><td class="num">¾″ ply</td><td class="n">1</td><td class="n">4′ × 5′ 3″</td><td class="note">Rip from a 4 × 8 sheet. Land every joint on a stringer or a block.</td></tr><tr><td>Decking panel</td><td class="num">¾″ ply</td><td class="n">1</td><td class="n">15″ × 5′ 3″</td><td class="note">Rip from a 4 × 8 sheet. Land every joint on a stringer or a block.</td></tr></tbody></table></div><h3>Ramp 2<small>12″ to 24″ over a 12′ run · sloped length 12′ ½″</small></h3><div class="tbl"><table><thead><tr><th>Part</th><th>Lumber</th><th class="n">Qty</th><th class="n">Cut length</th><th>Note</th></tr></thead><tbody><tr><td>Stringer</td><td class="num">2x6</td><td class="n">4</td><td class="n">12′ 1″</td><td class="note">Top edge follows the slope. Saw 4.8° off square for the plumb ends.</td></tr><tr><td>Leg at 4′</td><td class="num">2x4</td><td class="n">4</td><td class="n">9¾″</td><td class="note">Measured at the leg centre. Bevel the top to 4.8°.</td></tr><tr><td>Leg at 8′</td><td class="num">2x4</td><td class="n">4</td><td class="n">13¾″</td><td class="note">Measured at the leg centre. Bevel the top to 4.8°.</td></tr><tr><td>Leg at 11′ 10¼″</td><td class="num">2x4</td><td class="n">4</td><td class="n">17⅝″</td><td class="note">Measured at the leg centre. Bevel the top to 4.8°.</td></tr><tr><td>Blocking</td><td class="num">2x6</td><td class="n">12</td><td class="n">13″</td><td class="note">Between stringers at every leg row and plywood joint.</td></tr><tr><td>End header</td><td class="num">2x6</td><td class="n">1</td><td class="n">45″</td><td class="note">Closes the top end. Fasten it to the structure the ramp meets.</td></tr><tr><td>Curb, on edge</td><td class="num">2x4</td><td class="n">2</td><td class="n">12′ ¾″</td><td class="note">Screwed down onto the deck at each edge.</td></tr><tr><td>Decking panel</td><td class="num">¾″ ply</td><td class="n">1</td><td class="n">45″ × 8′</td><td class="note">Rip from a 4 × 8 sheet. Land every joint on a stringer or a block.</td></tr><tr><td>Decking panel</td><td class="num">¾″ ply</td><td class="n">1</td><td class="n">45″ × 4′ ½″</td><td class="note">Rip from a 4 × 8 sheet. Land every joint on a stringer or a block.</td></tr></tbody></table></div></div>
+      </section>
+
+      <section class="sheet">
+        <h2>Shopping list</h2>
+        <div id="shop"><h3>Lumber<small>buy these, then cut from the list above</small></h3><div class="tbl buy"><table><thead><tr><th>Lumber</th><th>Board length</th><th class="n">Qty</th></tr></thead><tbody><tr><td class="num">2x4</td><td class="num">8′</td><td class="n big">1</td></tr><tr><td class="num">2x4</td><td class="num">16′</td><td class="n big">5</td></tr><tr><td class="num">2x6</td><td class="num">8′</td><td class="n big">1</td></tr><tr><td class="num">2x6</td><td class="num">14′</td><td class="n big">1</td></tr><tr><td class="num">2x6</td><td class="num">16′</td><td class="n big">9</td></tr><tr><td class="num">4x4</td><td class="num">8′</td><td class="n big">1</td></tr></tbody></table></div><p class="cap">18 boards in all. Buy one or two spares.</p><h3>Sheets and hardware</h3><dl class="kv"><dt>Plywood, ¾″, 4 × 8<small>118 sq ft of deck plus 12% for waste</small></dt><dd>5 sheets</dd><dt>Deck screws, 2″ or 2½″<small>decking and curbs</small></dt><dd>325</dd><dt>Structural screws, 3″<small>legs, stringers, blocking, joists, posts</small></dt><dd>300</dd><dt>Heavy framing angles<small>where the ramps meet the platform</small></dt><dd>16</dd><dt>Joist hangers, 2x6<small>interior platform joists</small></dt><dd>6</dd><dt>Post bases, 4x4<small>for a concrete slab</small></dt><dd>6</dd><dt>Concrete screws, ¼″ × 2¾″<small>post bases and toe cleats</small></dt><dd>28</dd><dt>Construction adhesive, 10 oz<small>under the plywood</small></dt><dd>7 tubes</dd><dt>Non-slip surface<small>grip tape, grit paint or rubber matting</small></dt><dd>118 sq ft</dd></dl></div>
+        <div class="actions">
+          <button type="button" class="btn" id="copy">Copy lists as text</button>
+          <span id="copyMsg" role="status"></span>
+        </div>
+        <textarea id="copyBox" readonly hidden aria-label="Lists as text"></textarea>
+      </section>
+
+      <section class="sheet">
+        <h2>Build notes</h2>
+        <div id="notes"><p class="callout info"><b>Tip.</b> Stringers on Ramp 1 and Ramp 2 come out 12′ 1″ long, just 1″ over a 12′ board. Shorten the run by about 1″ and you can buy the shorter board.</p><h3>Build order</h3><ol class="steps"><li>Chalk the footprint on the slab, 17′ 3″ × 17′ 3″, and check the platform corners are square.</li><li>Build the platform frame first. Cut the posts to 5¾″, stand them on post bases, and level the headers. Then lay the joists and deck it.</li><li>Cut the stringers. Mark the top edge, then saw 4.8° off square for each plumb end. At the slab end, trim the bottom so the stringer sits flat and the tip is no thinner than 1½ inches.</li><li>Cut the legs to the lengths listed, bevel each top to 4.8°, and screw them to the stringers at the marked spots.</li><li>Stand the stringers up, 14½″ apart on centre. Fasten the high end to the platform or end header, then add the blocking at each leg row.</li><li>Glue and screw the plywood down, with every joint landing on a stringer or block. The last few inches at the slab end hang over the stringer tip, so bevel that edge.</li><li>Screw the 2x4 curbs on edge along each side, then add the non-slip surface.</li></ol><p class="cap">Drawings use a vertical scale of ×3.5 in the side view so the slope is visible. The plan view is to scale.</p></div>
+        <details class="how">
+          <summary>How the numbers are worked out</summary>
+          <ul>
+            <li>Lumber uses real sizes: a 2x6 is 1½ by 5½ inches. Plywood is ¾ inch thick, in 4 by 8 foot sheets.</li>
+            <li>The ramp surface sits on stringers set on edge, 16 inches apart on centre, with the top of each stringer ¾ inch under the surface.</li>
+            <li>Stringers rest on legs, with no more than 48 inches between supports. Leg lengths are measured at the centre of the leg. Bevel each top to the slope angle.</li>
+            <li>The curbs are 2x4s on edge, screwed on top of the deck at both edges. Deck width is the clear width plus 3 inches.</li>
+            <li>Lumber counts come from packing every cut into 8 to 16 foot boards, then shrinking each board to the shortest stock length that still holds its cuts. Buy one or two extra boards for mistakes.</li>
+            <li>This is a planning tool. It is not engineered, and it does not check a chair and rider against your lumber. For a heavy power chair or a tall platform, have someone qualified look at the design.</li>
+          </ul>
+        </details>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+/*CORE-START*/
+const STOCK=[96,120,144,168,192];
+const LUMBER={'2x4':{d:3.5},'2x6':{d:5.5},'2x8':{d:7.25},'4x4':{d:3.5}};
+const SIZE_ORDER=['2x4','2x6','2x8','4x4'];
+const PLY=0.75, KERF=0.125, OC=16, LEGSPAN=48;
+const FR=['','⅛','¼','⅜','½','⅝','¾','⅞'];
+
+function f(n){
+  let e=Math.round(n*8); const neg=e<0; if(neg) e=-e;
+  let ft=0;
+  if(e>=48*8){ft=Math.floor(e/96); e-=ft*96;}
+  const inch=Math.floor(e/8), fr=e%8;
+  let s='';
+  if(ft>0) s+=ft+'′ ';
+  if(inch>0||fr>0||ft===0) s+=(inch>0?inch:(fr>0?'':'0'))+FR[fr]+'″';
+  return (neg?'−':'')+s.trim();
+}
+function r8(n){return Math.round(n*8)/8}
+function ceilTo(n,k){return Math.ceil(n/k)*k}
+
+function plyPanels(width,length){
+  const out=[]; let rw=width;
+  while(rw>0.01){
+    const w=Math.min(48,rw); rw-=w;
+    let rl=length;
+    while(rl>0.01){const l=Math.min(96,rl); rl-=l; out.push({w:r8(w),l:r8(l)});}
+  }
+  return out;
+}
+
+function packLumber(lens){
+  const MAXL=STOCK[STOCK.length-1];
+  const bins=[]; const special=[];
+  lens.slice().sort((a,b)=>b-a).forEach(len=>{
+    if(len>MAXL){special.push(len);return;}
+    for(const b of bins){
+      const need=len+(b.n?KERF:0);
+      if(b.used+need<=MAXL){b.used+=need;b.n++;return;}
+    }
+    bins.push({used:len,n:1});
+  });
+  const counts={};
+  bins.forEach(b=>{
+    const stock=STOCK.find(s=>s>=b.used-1e-6)||MAXL;
+    b.stock=stock; counts[stock]=(counts[stock]||0)+1;
+  });
+  const bought=bins.reduce((a,b)=>a+b.stock,0)+special.reduce((a,b)=>a+b,0);
+  const used=lens.reduce((a,b)=>a+b,0);
+  return {counts,special,boards:bins.length+special.length,bought,used};
+}
+
+function calc(inp){
+  const W=inp.width, deckW=W+3, R=inp.rise, rp=inp.run, d=LUMBER[inp.stringer].d;
+  const layout=inp.layout;
+  const warns=[], tips=[], pieces=[];
+  const ramps=[]; let plat=null;
+
+  if(layout==='S'){
+    ramps.push({id:1,name:'Ramp',h0:0,h1:R,low:'slab',high:'free'});
+  }else{
+    const ph=inp.auto?R/2:inp.platH;
+    ramps.push({id:1,name:'Ramp 1',h0:0,h1:ph,low:'slab',high:'platform'});
+    ramps.push({id:2,name:'Ramp 2',h0:ph,h1:R,low:'platform',high:'free'});
+    let pw=Math.max(inp.pw,deckW), pd=Math.max(inp.pd,deckW);
+    if(layout==='U') pd=Math.max(pd,2*deckW);
+    if(pw!==inp.pw||pd!==inp.pd) warns.push('The platform was enlarged to '+f(pw)+' × '+f(pd)+' so both ramps fit on it.');
+    plat={w:pw,d:pd,h:ph};
+  }
+
+  function add(asm,name,size,len,qty,note){
+    if(qty<=0||len<=0) return;
+    let segs=1;
+    if(len>190){segs=Math.ceil(len/186);}
+    const seg=len/segs;
+    pieces.push({asm,name,size,len:r8(seg),qty:qty*segs,note:(note||'')+(segs>1?(note?' ':'')+'Cut in '+segs+' and splice over a leg or block.':'')});
+  }
+
+  const ang=Math.atan(1/rp), tan=1/rp, cos=Math.cos(ang);
+  const nStr=Math.ceil((deckW-1.5)/OC)+1, spacing=(deckW-1.5)/(nStr-1);
+  const panelsAll=[]; let deckArea=0;
+  let screws3=0, slabAnch=0, hangers=0, angles=0, supportLen=0, curbTotal=0, postBases=0;
+
+  ramps.forEach(r=>{
+    r.dh=r.h1-r.h0; r.run=r.dh*rp; r.Ls=Math.hypot(r.run,r.dh); r.ang=ang;
+    r.nStr=nStr; r.spacing=spacing;
+    r.board=r.Ls+d*tan;
+    // legs
+    const nSpans=Math.max(1,Math.ceil(r.run/LEGSPAN)); const s=r.run/nSpans;
+    r.legs=[];
+    for(let k=0;k<=nSpans;k++){
+      let x=k*s;
+      if(k===0) continue;
+      if(k===nSpans){ if(r.high==='platform') continue; x=r.run-1.75; }
+      const hb=r.h0+r.dh*x/r.run-PLY-d/cos;
+      if(hb>=1.5) r.legs.push({x:x,len:r8(hb)});
+    }
+    const maxLeg=r.legs.reduce((a,l)=>Math.max(a,l.len),0);
+    r.legMat=maxLeg>30?'4x4':'2x4';
+    if(maxLeg>30) warns.push(r.name+' has legs taller than 30″. They are listed as 4x4. Add a diagonal 2x4 brace between each pair of leg rows.');
+    r.x0Slab = r.low==='slab' ? Math.max(0,(PLY+d/cos-r.h0)*r.run/r.dh) : 0;
+
+    const A=r.name;
+    // stringers
+    const segs=r.board>190?Math.ceil(r.board/186):1;
+    add(A,'Stringer',inp.stringer,r.board/segs,nStr*segs,'Top edge follows the slope. Saw '+(ang*180/Math.PI).toFixed(1)+'° off square for the plumb ends.');
+    if(segs>1) add(A,'Splice plate',inp.stringer,24,nStr*(segs-1)*2,'One on each face of every splice.');
+    // legs
+    r.legs.forEach(l=>add(A,'Leg at '+f(l.x),r.legMat,l.len,nStr,'Measured at the leg centre. Bevel the top to '+(ang*180/Math.PI).toFixed(1)+'°.'));
+    // blocking
+    const rows=r.legs.length+Math.max(0,Math.ceil(r.Ls/96)-1);
+    const blockLen=spacing-1.5;
+    if(rows>0) add(A,'Blocking',inp.stringer,blockLen,(nStr-1)*rows,'Between stringers at every leg row and plywood joint.');
+    r.blockPieces=(nStr-1)*rows;
+    if(r.high==='free') add(A,'End header',inp.stringer,deckW,1,'Closes the top end. Fasten it to the structure the ramp meets.');
+    if(r.low==='slab') { add(A,'Slab toe cleat','2x4',deckW,1,'Anchored to the slab so the low end cannot creep.'); slabAnch+=4; }
+    const curb=r.Ls+3.5*tan;
+    add(A,'Curb, on edge','2x4',curb,2,'Screwed down onto the deck at each edge.');
+    curbTotal+=2*curb;
+    // decking
+    r.panels=plyPanels(deckW,r.Ls);
+    r.panels.forEach(p=>panelsAll.push(Object.assign({asm:A},p)));
+    r.deckArea=deckW*r.Ls/144; deckArea+=r.deckArea;
+    // hardware
+    const legTot=r.legs.length*nStr;
+    screws3+=legTot*4+nStr*4+r.blockPieces*4;
+    supportLen+=nStr*r.board+r.blockPieces*blockLen;
+    if(r.low==='slab') slabAnch+=0;
+    if(r.high==='platform'||r.low==='platform') angles+=nStr*2;
+  });
+
+  if(plat){
+    const pl=plat, avail=pl.h-PLY;
+    let jsz=(pl.d-3<=84)?'2x6':'2x8'; let jd=LUMBER[jsz].d; pl.flat=false;
+    if(avail<jd){
+      if(avail>=5.5){jsz='2x6';jd=5.5;}
+      else if(avail>=3.5){jsz='2x4';jd=3.5;}
+      else {jsz='2x4';jd=1.5;pl.flat=true;}
+    }
+    pl.jsz=jsz; pl.jd=jd;
+    pl.postLen=r8(avail-jd);
+    pl.onSlab=pl.postLen<1;
+    pl.J=Math.ceil((pl.w-1.5)/OC)+1; pl.jlen=pl.d-3;
+    if(!pl.onSlab){pl.nX=Math.ceil(pl.w/LEGSPAN)+1; pl.posts=2*pl.nX;} else {pl.nX=0;pl.posts=0;}
+    if(pl.h>=24) warns.push('The platform is '+f(pl.h)+' high. Add a diagonal 2x4 brace between the posts on each side.');
+    if(pl.d-3>120&&!pl.onSlab) warns.push('The platform joists span over 10 feet. Add a mid beam, or shrink the platform.');
+    const A='Platform';
+    add(A,'Header',jsz,pl.w,2,pl.flat?'Laid flat on the slab.':'Along the width, at both ends.');
+    add(A,'Joist',jsz,pl.jlen,pl.J,'Between the headers, '+OC+'″ on centre'+(pl.flat?', laid flat on the slab.':'.'));
+    if(pl.posts>0) add(A,'Post','4x4',pl.postLen,pl.posts,'Under the headers, 48″ apart or less.');
+    const cl = layout==='L'?[pl.d,pl.w,pl.d-deckW,pl.w-deckW]:[pl.d,pl.w,pl.w,pl.d-2*deckW];
+    const cp=['Curb, east side','Curb, south side','Curb, west leftover','Curb, north leftover'];
+    const cpU=['Curb, far side','Curb, side','Curb, side','Curb, between the ramps'];
+    const curbSet={};
+    cl.forEach((len,i)=>{ if(len>3){const key=r8(len); curbSet[key]=(curbSet[key]||0)+1;} });
+    Object.keys(curbSet).forEach(k=>add(A,'Curb, on edge','2x4',parseFloat(k),curbSet[k],'Open edges of the platform. Skip any edge that sits against a wall.'));
+    cl.forEach(len=>{if(len>3) curbTotal+=len;});
+    pl.panels=plyPanels(pl.w,pl.d);
+    pl.panels.forEach(p=>panelsAll.push(Object.assign({asm:A},p)));
+    pl.deckArea=pl.w*pl.d/144; deckArea+=pl.deckArea;
+    hangers+=2*(pl.J-2);
+    screws3+=pl.J*4+pl.posts*4+8;
+    supportLen+=pl.J*pl.jlen+2*pl.w;
+    postBases+=pl.posts; slabAnch+=pl.posts*4;
+  }
+
+  // plywood summary
+  const groups={};
+  panelsAll.forEach(p=>{const k=p.asm+'|'+p.w+'|'+p.l; (groups[k]=groups[k]||Object.assign({qty:0},p)).qty++;});
+  const panelRows=Object.values(groups);
+  const sheets=Math.ceil(deckArea/32*1.12);
+
+  // footprint
+  let fx,fy;
+  if(layout==='S'){fx=ramps[0].run; fy=deckW;}
+  else if(layout==='L'){fx=ramps[0].run+plat.w; fy=plat.d+ramps[1].run;}
+  else {fx=Math.max(ramps[0].run,ramps[1].run)+plat.w; fy=plat.d;}
+
+  let fit={state:'na',text:'Enter your floor space to check the fit.',spare:null};
+  if(isFinite(inp.sw)&&isFinite(inp.sd)&&inp.sw>0&&inp.sd>0){
+    const sw=inp.sw*12, sd=inp.sd*12;
+    const a=Math.min(sw-fx,sd-fy), b=Math.min(sd-fx,sw-fy);
+    const best=Math.max(a,b);
+    if(best>=12) fit={state:'ok',text:'Fits with '+f(best)+' to spare in the tight direction.',spare:best};
+    else if(best>=0) fit={state:'tight',text:'Fits, with only '+f(best)+' to spare.',spare:best};
+    else fit={state:'no',text:'Does not fit. It is '+f(-best)+' too big in the tight direction.',spare:best};
+  }
+
+  // misc warnings and tips
+  if(rp<8) warns.push('Slope steeper than 1:8. Expect a power chair or a strong helper to be needed, and check that the chair does not scrape where the ramp meets the slab or the platform.');
+  else if(rp<12) warns.push('Slope steeper than 1:12. Most people in manual chairs will need a push on this ramp.');
+  if(layout==='S'&&R>30) warns.push('A single run with '+f(R)+' of rise is a long push. Consider an L-turn or U-turn so there is a platform to rest on.');
+  const tipSeen={};
+  ramps.forEach(r=>{
+    const per=r.board>190?Math.ceil(r.board/186):1, len=r.board/per;
+    for(const st of STOCK){
+      const over=len-st;
+      if(over>0&&over<=1.5){
+        const key=st+'|'+Math.round(len*8);
+        if(tipSeen[key]) tipSeen[key].names.push(r.name);
+        else tipSeen[key]={names:[r.name],len,over,st};
+        break;
+      }
+    }
+  });
+  Object.values(tipSeen).forEach(t=>{
+    tips.push((t.names.length>1?'Stringers on '+t.names.join(' and '):t.names[0]+' stringers')+' come out '+f(t.len)+' long, just '+f(t.over)+' over a '+(t.st/12)+'′ board. Shorten the run by about '+f(Math.ceil(t.over*8)/8)+' and you can buy the shorter board.');
+  });
+
+  const hw={
+    deckScrews:ceilTo(deckArea*2+curbTotal/12*1.2,25),
+    screws3:ceilTo(screws3*1.15+curbTotal/12*0.5,25),
+    hangers, angles, postBases, slabAnch,
+    adhesive:Math.max(1,Math.ceil(supportLen/12/25)),
+    nonslip:Math.ceil(deckArea)
+  };
+
+  return {inp,deckW,ramps,plat,pieces,panelRows,deckArea,sheets,hw,fit,fx,fy,warns,tips,nStr,spacing,ang,d};
+}
+/*CORE-END*/
+
+/* ---------- drawings ---------- */
+function planGeom(m){
+  const {inp,ramps,plat,deckW}=m; const L=inp.layout; const rects=[];
+  if(L==='S'){
+    rects.push({kind:'ramp',r:ramps[0],x0:0,y0:0,x1:ramps[0].run,y1:deckW,dir:[1,0]});
+  }else if(L==='L'){
+    const a=ramps[0],b=ramps[1];
+    rects.push({kind:'ramp',r:a,x0:0,y0:0,x1:a.run,y1:deckW,dir:[1,0]});
+    rects.push({kind:'plat',x0:a.run,y0:0,x1:a.run+plat.w,y1:plat.d});
+    rects.push({kind:'ramp',r:b,x0:a.run+plat.w-deckW,y0:plat.d,x1:a.run+plat.w,y1:plat.d+b.run,dir:[0,1]});
+  }else{
+    const a=ramps[0],b=ramps[1];
+    rects.push({kind:'ramp',r:a,x0:0,y0:0,x1:a.run,y1:deckW,dir:[1,0]});
+    rects.push({kind:'plat',x0:a.run,y0:0,x1:a.run+plat.w,y1:plat.d});
+    rects.push({kind:'ramp',r:b,x0:a.run-b.run,y0:plat.d-deckW,x1:a.run,y1:plat.d,dir:[-1,0]});
+  }
+  const minX=Math.min(...rects.map(r=>r.x0)), maxX=Math.max(...rects.map(r=>r.x1));
+  const minY=0, maxY=Math.max(...rects.map(r=>r.y1));
+  if(inp.turn==='right'&&L!=='S'){
+    rects.forEach(r=>{const y0=maxY-r.y1, y1=maxY-r.y0; r.y0=y0; r.y1=y1; if(r.dir) r.dir=[r.dir[0],-r.dir[1]];});
+  }
+  return {rects,minX,maxX,minY,maxY};
+}
+
+function drawPlan(m){
+  const g=planGeom(m), pl=m.plat;
+  const VW=560, mg=18, rightPad=34, bottomPad=34;
+  const bw=g.maxX-g.minX, bh=g.maxY-g.minY;
+  const sc=Math.min((VW-2*mg-rightPad)/bw,360/bh);
+  const W=bw*sc, H=bh*sc;
+  const ox=mg+Math.max(0,(VW-2*mg-rightPad-W)/2);
+  const VH=H+2*mg+bottomPad;
+  const X=x=>ox+(x-g.minX)*sc, Y=y=>mg+(g.maxY-y)*sc;
+  let s='<svg class="draw" viewBox="0 0 '+VW+' '+VH.toFixed(1)+'" role="img" aria-label="Plan view of the ramp">';
+  g.rects.forEach(r=>{
+    const x=X(r.x0), y=Y(r.y1), w=(r.x1-r.x0)*sc, h=(r.y1-r.y0)*sc;
+    s+='<rect class="ply" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+h.toFixed(1)+'"/>';
+    if(r.kind==='ramp'){
+      for(let i=0;i<r.r.nStr;i++){
+        const off=0.75+i*r.r.spacing;
+        if(r.dir[0]!==0){const yy=Y(r.y0+off); s+='<line class="strl" x1="'+x.toFixed(1)+'" x2="'+(x+w).toFixed(1)+'" y1="'+yy.toFixed(1)+'" y2="'+yy.toFixed(1)+'"/>';}
+        else {const xx=X(r.x0+off); s+='<line class="strl" y1="'+y.toFixed(1)+'" y2="'+(y+h).toFixed(1)+'" x1="'+xx.toFixed(1)+'" x2="'+xx.toFixed(1)+'"/>';}
+      }
+    }else{
+      for(let i=0;i<pl.J;i++){
+        const xx=X(r.x0+0.75+i*(pl.w-1.5)/(pl.J-1));
+        s+='<line class="strl" y1="'+y.toFixed(1)+'" y2="'+(y+h).toFixed(1)+'" x1="'+xx.toFixed(1)+'" x2="'+xx.toFixed(1)+'"/>';
+      }
+      if(pl.posts>0){
+        const ps=Math.max(5,3.5*sc);
+        [r.y0+0.75,r.y1-0.75].forEach(yy=>{
+          for(let i=0;i<pl.nX;i++){
+            const xx=r.x0+1.75+i*(pl.w-3.5)/(pl.nX-1);
+            s+='<rect class="post" x="'+(X(xx)-ps/2).toFixed(1)+'" y="'+(Y(yy)-ps/2).toFixed(1)+'" width="'+ps.toFixed(1)+'" height="'+ps.toFixed(1)+'"/>';
+          }
+        });
+      }
+    }
+  });
+  // arrows and labels
+  g.rects.forEach(r=>{
+    const cx=X((r.x0+r.x1)/2), cy=Y((r.y0+r.y1)/2);
+    if(r.kind==='ramp'){
+      const dx=r.dir[0], dy=-r.dir[1];
+      const len=(dx!==0?(r.x1-r.x0):(r.y1-r.y0))*sc;
+      const half=Math.min(len*0.28,70);
+      const x1=cx-dx*half, y1=cy-dy*half, x2=cx+dx*half, y2=cy+dy*half;
+      const px=-dy, py=dx, hs=7;
+      s+='<line class="arr" x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'"/>';
+      s+='<polygon class="arrh" points="'+(x2+dx*hs).toFixed(1)+','+(y2+dy*hs).toFixed(1)+' '+(x2-dx*hs*0.2+px*hs*0.9).toFixed(1)+','+(y2-dy*hs*0.2+py*hs*0.9).toFixed(1)+' '+(x2-dx*hs*0.2-px*hs*0.9).toFixed(1)+','+(y2-dy*hs*0.2-py*hs*0.9).toFixed(1)+'"/>';
+      s+='<text class="lbl" x="'+cx.toFixed(1)+'" y="'+(cy-12).toFixed(1)+'">'+(m.plat?r.r.name.toUpperCase():'RAMP')+'</text>';
+      s+='<text class="sub" x="'+cx.toFixed(1)+'" y="'+(cy+24).toFixed(1)+'">'+f(r.r.h0)+' → '+f(r.r.h1)+'</text>';
+    }else{
+      s+='<text class="lbl" x="'+cx.toFixed(1)+'" y="'+(cy-2).toFixed(1)+'">PLATFORM</text>';
+      s+='<text class="sub" x="'+cx.toFixed(1)+'" y="'+(cy+14).toFixed(1)+'">'+f(pl.h)+' high</text>';
+    }
+  });
+  // overall dimensions
+  const bx0=X(g.minX), bx1=X(g.maxX), by=Y(g.minY)+16;
+  s+='<path class="dim" d="M'+bx0.toFixed(1)+' '+(by-4).toFixed(1)+'V'+(by+4).toFixed(1)+'M'+bx0.toFixed(1)+' '+by.toFixed(1)+'H'+bx1.toFixed(1)+'M'+bx1.toFixed(1)+' '+(by-4).toFixed(1)+'V'+(by+4).toFixed(1)+'"/>';
+  s+='<text class="dimt" x="'+((bx0+bx1)/2).toFixed(1)+'" y="'+(by+17).toFixed(1)+'">'+f(bw)+'</text>';
+  const dxr=X(g.maxX)+14, ry0=Y(g.maxY), ry1=Y(g.minY);
+  s+='<path class="dim" d="M'+(dxr-4).toFixed(1)+' '+ry0.toFixed(1)+'H'+(dxr+4).toFixed(1)+'M'+dxr.toFixed(1)+' '+ry0.toFixed(1)+'V'+ry1.toFixed(1)+'M'+(dxr-4).toFixed(1)+' '+ry1.toFixed(1)+'H'+(dxr+4).toFixed(1)+'"/>';
+  const tx=dxr+15, ty=(ry0+ry1)/2;
+  s+='<text class="dimt" transform="rotate(90 '+tx.toFixed(1)+' '+ty.toFixed(1)+')" x="'+tx.toFixed(1)+'" y="'+ty.toFixed(1)+'">'+f(bh)+'</text>';
+  s+='</svg>';
+  return s;
+}
+
+function drawProfile(m){
+  const {ramps,plat,inp,deckW,d}=m; const R=inp.rise;
+  const segs=[{t:'ramp',r:ramps[0],len:ramps[0].run}];
+  if(plat){
+    const land=inp.layout==='L'?plat.w+plat.d-deckW:plat.d;
+    segs.push({t:'plat',len:land});
+    segs.push({t:'ramp',r:ramps[1],len:ramps[1].run});
+  }
+  const P=segs.reduce((a,s)=>a+s.len,0);
+  const VW=560, mx=40, mr=24, my=40;
+  const sc=(VW-mx-mr)/P;
+  let ve=Math.round(2*(120/(R*sc)))/2; ve=Math.max(1,Math.min(8,ve));
+  const hpx=R*sc*ve; const base=my+hpx; const VH=base+50;
+  const cos=Math.cos(m.ang);
+  const Yh=h=>base-h*sc*ve;
+  let s='<svg class="draw" viewBox="0 0 '+VW+' '+VH.toFixed(1)+'" role="img" aria-label="Side view of the ramp">';
+  s+='<line class="slab" x1="'+(mx-14)+'" x2="'+(VW-mr+8)+'" y1="'+base.toFixed(1)+'" y2="'+base.toFixed(1)+'"/>';
+  let xAt=mx;
+  segs.forEach((sg,idx)=>{
+    const x0=xAt, x1=xAt+sg.len*sc;
+    if(sg.t==='ramp'){
+      const r=sg.r, depth=d/cos;
+      const topL=Yh(r.h0-PLY), topR=Yh(r.h1-PLY);
+      const botL=Yh(r.h0-PLY-depth), botR=Yh(r.h1-PLY-depth);
+      let pts;
+      if(botL>base){
+        const xc=x0+(r.x0Slab||0)*sc;
+        pts=[[x0,topL],[x1,topR],[x1,botR],[xc,base],[x0,base]];
+      }else pts=[[x0,topL],[x1,topR],[x1,botR],[x0,botL]];
+      s+='<polygon class="band" points="'+pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+'"/>';
+      r.legs.forEach(l=>{
+        const lx=x0+l.x*sc;
+        const hb=r.h0+r.dh*l.x/r.run-PLY-depth;
+        s+='<line class="leg" x1="'+lx.toFixed(1)+'" x2="'+lx.toFixed(1)+'" y1="'+base.toFixed(1)+'" y2="'+Yh(hb).toFixed(1)+'"/>';
+      });
+      s+='<line class="deck" x1="'+x0.toFixed(1)+'" y1="'+Yh(r.h0).toFixed(1)+'" x2="'+x1.toFixed(1)+'" y2="'+Yh(r.h1).toFixed(1)+'"/>';
+      const mxp=(x0+x1)/2, myp=(Yh(r.h0)+Yh(r.h1))/2;
+      s+='<text class="sub" x="'+mxp.toFixed(1)+'" y="'+(myp-12).toFixed(1)+'">1:'+inp.run+' · '+(m.ang*180/Math.PI).toFixed(1)+'°</text>';
+    }else{
+      const ph=plat.h, jd=plat.jd;
+      s+='<rect class="pband" x="'+x0.toFixed(1)+'" y="'+Yh(ph).toFixed(1)+'" width="'+(x1-x0).toFixed(1)+'" height="'+Math.max(2,PLY*sc*ve).toFixed(1)+'"/>';
+      s+='<rect class="band" x="'+x0.toFixed(1)+'" y="'+Yh(ph-PLY).toFixed(1)+'" width="'+(x1-x0).toFixed(1)+'" height="'+Math.max(2,jd*sc*ve).toFixed(1)+'"/>';
+      if(!plat.onSlab){
+        [x0+3,x1-3,(x0+x1)/2].forEach((px,i)=>{
+          s+='<line class="leg" x1="'+px.toFixed(1)+'" x2="'+px.toFixed(1)+'" y1="'+base.toFixed(1)+'" y2="'+Yh(ph-PLY-jd).toFixed(1)+'"/>';
+        });
+      }else{
+        s+='<rect class="band" x="'+x0.toFixed(1)+'" y="'+Yh(ph-PLY-jd).toFixed(1)+'" width="'+(x1-x0).toFixed(1)+'" height="'+Math.max(0,(base-Yh(ph-PLY-jd))).toFixed(1)+'" fill-opacity=".15"/>';
+      }
+      s+='<text class="sub" x="'+((x0+x1)/2).toFixed(1)+'" y="'+(Yh(ph)-8).toFixed(1)+'">'+f(ph)+'</text>';
+    }
+    // run label under the slab line
+    const lab=sg.t==='ramp'?f(sg.len):f(sg.len);
+    s+='<text class="dimt" x="'+((x0+x1)/2).toFixed(1)+'" y="'+(base+20).toFixed(1)+'">'+lab+(sg.t==='ramp'?' run':' across')+'</text>';
+    xAt=x1;
+  });
+  // end height
+  s+='<text class="sub" x="'+(xAt-4).toFixed(1)+'" y="'+(Yh(R)-9).toFixed(1)+'">'+f(R)+'</text>';
+  s+='<text class="dimt" x="'+(mx-14)+'" y="'+(base+20).toFixed(1)+'" style="text-anchor:start">slab</text>';
+  s+='</svg>';
+  m.ve=ve;
+  return s;
+}
+
+/* ---------- html builders ---------- */
+function keysHtml(m){
+  const i=m.inp, deg=(m.ang*180/Math.PI).toFixed(1), gr=(100/i.run).toFixed(1);
+  const run=m.plat?f(m.ramps[0].run)+' + '+f(m.ramps[1].run):f(m.ramps[0].run);
+  const sub2=m.plat?'plus a '+f(m.plat.w)+' × '+f(m.plat.d)+' platform':'sloped length '+f(m.ramps[0].Ls);
+  const lab={ok:'Fits',tight:'Tight fit',no:'Too big',na:'Not checked'}[m.fit.state];
+  return ''+
+  '<div class="key"><div class="k">Total rise</div><div class="v">'+f(i.rise)+'</div><div class="s">1:'+i.run+' slope · '+deg+'° · '+gr+'% grade</div></div>'+
+  '<div class="key"><div class="k">Ramp run</div><div class="v">'+run+'</div><div class="s">'+sub2+'</div></div>'+
+  '<div class="key"><div class="k">Footprint</div><div class="v">'+f(m.fx)+' × '+f(m.fy)+'</div><div class="s">'+(m.ramps.length>1?'Platform at '+f(m.plat.h)+', ':'')+f(m.deckW)+' wide decks</div></div>'+
+  '<div class="key"><div class="k">Floor space</div><div class="v"><span class="pill '+m.fit.state+'">'+lab+'</span></div><div class="s">'+m.fit.text+'</div></div>';
+}
+
+function cutsHtml(m){
+  const order=[]; m.ramps.forEach(r=>{order.push(r.name); if(r.id===1&&m.plat) order.push('Platform');});
+  let h='';
+  order.forEach(name=>{
+    const r=m.ramps.find(x=>x.name===name);
+    let title, small;
+    if(r){title=r.name; small=f(r.h0)+' to '+f(r.h1)+' over a '+f(r.run)+' run · sloped length '+f(r.Ls);}
+    else {title='Platform'; small=f(m.plat.w)+' × '+f(m.plat.d)+' deck at '+f(m.plat.h)+', '+m.plat.jsz+(m.plat.flat?' flat':'')+' joists'+(m.plat.onSlab?' resting on the slab':' on 4x4 posts');}
+    h+='<h3>'+title+'<small>'+small+'</small></h3>';
+    h+='<div class="tbl"><table><thead><tr><th>Part</th><th>Lumber</th><th class="n">Qty</th><th class="n">Cut length</th><th>Note</th></tr></thead><tbody>';
+    m.pieces.filter(p=>p.asm===name).forEach(p=>{
+      h+='<tr><td>'+p.name+'</td><td class="num">'+p.size+'</td><td class="n">'+p.qty+'</td><td class="n">'+f(p.len)+'</td><td class="note">'+p.note+'</td></tr>';
+    });
+    m.panelRows.filter(p=>p.asm===name).forEach(p=>{
+      h+='<tr><td>Decking panel</td><td class="num">¾″ ply</td><td class="n">'+p.qty+'</td><td class="n">'+f(p.w)+' × '+f(p.l)+'</td><td class="note">Rip from a 4 × 8 sheet. Land every joint on a stringer or a block.</td></tr>';
+    });
+    h+='</tbody></table></div>';
+  });
+  return h;
+}
+
+function shopData(m){
+  const by={};
+  m.pieces.forEach(p=>{(by[p.size]=by[p.size]||[]); for(let k=0;k<p.qty;k++) by[p.size].push(p.len);});
+  const out=[];
+  SIZE_ORDER.forEach(sz=>{ if(by[sz]){const pk=packLumber(by[sz]); out.push({size:sz,pk});} });
+  return out;
+}
+
+function shopHtml(m){
+  const data=shopData(m); let totalBoards=0;
+  let h='<h3>Lumber<small>buy these, then cut from the list above</small></h3><div class="tbl buy"><table><thead><tr><th>Lumber</th><th>Board length</th><th class="n">Qty</th></tr></thead><tbody>';
+  data.forEach(dt=>{
+    STOCK.forEach(s=>{ if(dt.pk.counts[s]){ h+='<tr><td class="num">'+dt.size+'</td><td class="num">'+(s/12)+'′</td><td class="n big">'+dt.pk.counts[s]+'</td></tr>'; totalBoards+=dt.pk.counts[s]; } });
+    dt.pk.special.forEach(len=>{h+='<tr><td class="num">'+dt.size+'</td><td class="num">'+f(len)+' special</td><td class="n big">1</td></tr>'; totalBoards++;});
+  });
+  h+='</tbody></table></div><p class="cap">'+totalBoards+' boards in all. Buy one or two spares.</p>';
+  const hw=m.hw;
+  h+='<h3>Sheets and hardware</h3><dl class="kv">';
+  h+='<dt>Plywood, ¾″, 4 × 8<small>'+Math.round(m.deckArea)+' sq ft of deck plus 12% for waste</small></dt><dd>'+m.sheets+' sheets</dd>';
+  h+='<dt>Deck screws, 2″ or 2½″<small>decking and curbs</small></dt><dd>'+hw.deckScrews+'</dd>';
+  h+='<dt>Structural screws, 3″<small>legs, stringers, blocking, joists, posts</small></dt><dd>'+hw.screws3+'</dd>';
+  if(hw.angles>0) h+='<dt>Heavy framing angles<small>where the ramps meet the platform</small></dt><dd>'+hw.angles+'</dd>';
+  if(hw.hangers>0) h+='<dt>Joist hangers, '+m.plat.jsz+'<small>interior platform joists</small></dt><dd>'+hw.hangers+'</dd>';
+  if(hw.postBases>0) h+='<dt>Post bases, 4x4<small>for a concrete slab</small></dt><dd>'+hw.postBases+'</dd>';
+  h+='<dt>Concrete screws, ¼″ × 2¾″<small>post bases and toe cleats</small></dt><dd>'+hw.slabAnch+'</dd>';
+  h+='<dt>Construction adhesive, 10 oz<small>under the plywood</small></dt><dd>'+hw.adhesive+' tubes</dd>';
+  h+='<dt>Non-slip surface<small>grip tape, grit paint or rubber matting</small></dt><dd>'+hw.nonslip+' sq ft</dd>';
+  h+='</dl>';
+  return h;
+}
+
+function notesHtml(m){
+  let h='';
+  m.warns.forEach(w=>{h+='<p class="callout"><b>Check this.</b> '+w+'</p>';});
+  m.tips.forEach(w=>{h+='<p class="callout info"><b>Tip.</b> '+w+'</p>';});
+  const deg=(m.ang*180/Math.PI).toFixed(1);
+  h+='<h3>Build order</h3><ol class="steps">';
+  let n=0;
+  if(m.plat){
+    h+='<li>Chalk the footprint on the slab, '+f(m.fx)+' × '+f(m.fy)+', and check the platform corners are square.</li>';
+    h+='<li>Build the platform frame first. '+(m.plat.onSlab?'It sits directly on the slab, so shim it level.':'Cut the posts to '+f(m.plat.postLen)+', stand them on post bases, and level the headers.')+' Then lay the joists and deck it.</li>';
+  }else{
+    h+='<li>Chalk the footprint on the slab, '+f(m.fx)+' × '+f(m.fy)+'. Anchor the toe cleat at the low end.</li>';
+  }
+  h+='<li>Cut the stringers. Mark the top edge, then saw '+deg+'° off square for each plumb end. At the slab end, trim the bottom so the stringer sits flat and the tip is no thinner than 1½ inches.</li>';
+  h+='<li>Cut the legs to the lengths listed, bevel each top to '+deg+'°, and screw them to the stringers at the marked spots.</li>';
+  h+='<li>Stand the stringers up, '+f(m.spacing)+' apart on centre. Fasten the high end to the platform or end header, then add the blocking at each leg row.</li>';
+  h+='<li>Glue and screw the plywood down, with every joint landing on a stringer or block. The last few inches at the slab end hang over the stringer tip, so bevel that edge.</li>';
+  h+='<li>Screw the 2x4 curbs on edge along each side, then add the non-slip surface.</li>';
+  h+='</ol>';
+  h+='<p class="cap">Drawings use a vertical scale of ×'+(m.ve||1)+' in the side view so the slope is visible. The plan view is to scale.</p>';
+  return h;
+}
+
+function copyText(m){
+  const L=[]; const i=m.inp;
+  L.push('WHEELCHAIR RAMP PLAN');
+  L.push('Rise '+f(i.rise)+', slope 1:'+i.run+', clear width '+f(i.width)+', layout '+({S:'straight',L:'L-turn',U:'U-turn'})[i.layout]);
+  L.push('Footprint '+f(m.fx)+' x '+f(m.fy)); L.push('');
+  L.push('CUT LIST');
+  const names=[]; m.pieces.forEach(p=>{if(!names.includes(p.asm)) names.push(p.asm);});
+  names.forEach(a=>{
+    L.push(a.toUpperCase());
+    m.pieces.filter(p=>p.asm===a).forEach(p=>L.push('  '+p.qty+' x '+p.size+' '+p.name+' @ '+f(p.len)));
+    m.panelRows.filter(p=>p.asm===a).forEach(p=>L.push('  '+p.qty+' x 3/4 ply panel '+f(p.w)+' x '+f(p.l)));
+  });
+  L.push(''); L.push('BUY');
+  shopData(m).forEach(dt=>{STOCK.forEach(s=>{if(dt.pk.counts[s]) L.push('  '+dt.pk.counts[s]+' x '+dt.size+' x '+(s/12)+'ft');});});
+  const hw=m.hw;
+  L.push('  '+m.sheets+' x 3/4 in plywood, 4x8');
+  L.push('  '+hw.deckScrews+' deck screws, '+hw.screws3+' structural screws 3in');
+  if(hw.angles) L.push('  '+hw.angles+' heavy framing angles');
+  if(hw.hangers) L.push('  '+hw.hangers+' joist hangers ('+m.plat.jsz+')');
+  if(hw.postBases) L.push('  '+hw.postBases+' post bases');
+  L.push('  '+hw.slabAnch+' concrete screws, '+hw.adhesive+' tubes adhesive, '+hw.nonslip+' sq ft non-slip surface');
+  return L.join('\n');
+}
+
+/* ---------- page wiring ---------- */
+const $=id=>document.getElementById(id);
+const DEFAULTS={layout:'L',turn:'left',rise:'24',run:'12',auto:true,platH:'12',width:'42',pw:'63',pd:'63',stringer:'2x6',sw:'20',sd:'20'};
+const NUM_IDS=['rise','run','platH','width','pw','pd','sw','sd'];
+let lastModel=null;
+
+function read(){
+  const g=id=>parseFloat($(id).value);
+  return {
+    layout:document.querySelector('input[name=layout]:checked').value,
+    turn:document.querySelector('input[name=turn]:checked').value,
+    rise:g('rise'),run:g('run'),width:g('width'),auto:$('auto').checked,platH:g('platH'),
+    pw:g('pw'),pd:g('pd'),stringer:$('stringer').value,sw:g('sw'),sd:g('sd')
+  };
+}
+function validate(i){
+  const e=[];
+  if(!(i.rise>=2&&i.rise<=120)) e.push('Total rise must be between 2 and 120 inches.');
+  if(!(i.run>=4&&i.run<=30)) e.push('Slope must be between 1:4 and 1:30.');
+  if(!(i.width>=24&&i.width<=72)) e.push('Clear width must be between 24 and 72 inches.');
+  if(i.layout!=='S'){
+    if(!(i.pw>=36&&i.pw<=144)||!(i.pd>=36&&i.pd<=144)) e.push('Platform length and depth must each be between 36 and 144 inches.');
+    const ph=i.auto?i.rise/2:i.platH;
+    if(!(ph>=2.25)) e.push('The platform needs to be at least 2¼ inches high.');
+    else if(!(i.rise-ph>=2)) e.push('The platform must be at least 2 inches below the top of the ramp.');
+  }
+  return e;
+}
+function syncUi(i){
+  const straight=i.layout==='S';
+  $('turnField').hidden=straight; $('platFieldH').hidden=straight; $('platFieldS').hidden=straight;
+  $('platH').disabled=i.auto;
+  if(i.auto&&isFinite(i.rise)) $('platH').value=String(Math.round(i.rise/2*100)/100);
+  document.querySelectorAll('#chips .chip').forEach(c=>c.setAttribute('aria-pressed',String(parseFloat(c.dataset.run)===i.run)));
+  let t='';
+  if(i.run>=12) t='At or gentler than the standard 1:12.';
+  else if(i.run>=8) t='Steeper than 1:12. Most manual chair users will need a push.';
+  else if(i.run>0) t='Steep. Plan on a power chair or a strong helper.';
+  if(isFinite(i.run)&&i.run>0) t+=' '+(Math.atan(1/i.run)*180/Math.PI).toFixed(1)+'° · '+(100/i.run).toFixed(1)+'% grade.';
+  $('slopeNote').textContent=t;
+}
+function save(i){
+  try{
+    const o={layout:i.layout,turn:i.turn,auto:i.auto,stringer:i.stringer};
+    NUM_IDS.forEach(id=>o[id]=$(id).value);
+    localStorage.setItem('rampPlanner.v1',JSON.stringify(o));
+  }catch(e){}
+}
+function apply(o){
+  const set=(id,v)=>{if(v!==undefined&&v!==null) $(id).value=v;};
+  NUM_IDS.forEach(id=>set(id,o[id]));
+  $('stringer').value=o.stringer||'2x6';
+  $('auto').checked=!!o.auto;
+  const l=document.querySelector('input[name=layout][value="'+(o.layout||'L')+'"]'); if(l) l.checked=true;
+  const t=document.querySelector('input[name=turn][value="'+(o.turn||'left')+'"]'); if(t) t.checked=true;
+}
+
+function render(){
+  const inp=read(); syncUi(inp);
+  const errs=validate(inp); const st=$('status');
+  if(errs.length){st.hidden=false; st.textContent=errs[0]; $('out').classList.add('stale'); return;}
+  st.hidden=true; $('out').classList.remove('stale');
+  let m;
+  try{ m=calc(inp); }catch(e){ st.hidden=false; st.textContent='Something in those numbers did not work out. Try changing one value.'; $('out').classList.add('stale'); return; }
+  lastModel=m;
+  $('plan').innerHTML=drawPlan(m);
+  $('profile').innerHTML=drawProfile(m);
+  $('keys').innerHTML=keysHtml(m);
+  $('planCap').textContent='Plan view, to scale. Arrows point up the ramp. Thin lines are the stringers and platform joists.';
+  $('profCap').textContent='Side view, unrolled along the path of travel. Vertical scale ×'+m.ve+'. Dark lines under the ramp are the legs.';
+  $('cuts').innerHTML=cutsHtml(m);
+  $('shop').innerHTML=shopHtml(m);
+  $('notes').innerHTML=notesHtml(m);
+  $('copyMsg').textContent=''; $('copyBox').hidden=true;
+  save(inp);
+}
+
+document.getElementById('form').addEventListener('input',render);
+document.getElementById('form').addEventListener('change',render);
+$('chips').addEventListener('click',e=>{
+  const b=e.target.closest('.chip'); if(!b) return;
+  $('run').value=b.dataset.run; render();
+});
+$('reset').addEventListener('click',()=>{apply(DEFAULTS); render();});
+$('copy').addEventListener('click',()=>{
+  if(!lastModel) return;
+  const txt=copyText(lastModel);
+  const box=$('copyBox'); box.value=txt;
+  const fallback=()=>{box.hidden=false; box.focus(); box.select(); $('copyMsg').textContent='Select and copy the text below.';};
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(()=>{$('copyMsg').textContent='Copied.'; box.hidden=true;},fallback);
+    }else fallback();
+  }catch(e){fallback();}
+});
+
+try{
+  const saved=JSON.parse(localStorage.getItem('rampPlanner.v1')||'null');
+  apply(saved&&typeof saved==='object'?Object.assign({},DEFAULTS,saved):DEFAULTS);
+}catch(e){apply(DEFAULTS);}
+render();
+</script>
+
+</body>
+</html>
