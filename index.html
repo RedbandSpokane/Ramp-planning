@@ -586,29 +586,29 @@ input[type=text]:focus-visible,input[type=email]:focus-visible,input[type=tel]:f
         <h2>Quote</h2>
         <div class="noprint" id="proBox">
           <div class="qmode">
-            <label class="check"><input id="fullQuote" type="checkbox"> Full quote: add labor, markup, deposit, terms and signature lines</label>
+            <label class="check"><input id="fullQuote" type="checkbox"> Full quote: add your business and customer details, labor, markup, tax, deposit, terms and signature lines</label>
             <p class="cap" id="qmodeNote"></p>
           </div>
-          <h3>Your business and the customer<small>saved on this device only</small></h3>
-          <div class="pgrid">
+          <h3 class="qonly">Your business and the customer<small>saved on this device only</small></h3>
+          <div class="pgrid qonly">
             <div class="field"><label for="biz">Business name</label><input id="biz" type="text" autocomplete="organization"></div>
             <div class="field"><label for="bphone">Phone</label><input id="bphone" type="tel"></div>
             <div class="field"><label for="bemail">Email</label><input id="bemail" type="email"></div>
             <div class="field"><label for="blic">License or insurance line</label><input id="blic" type="text"></div>
             <div class="field"><label for="cust">Customer</label><input id="cust" type="text"></div>
             <div class="field"><label for="caddr">Job address</label><input id="caddr" type="text"></div>
-            <div class="field"><label for="jobno" id="jobnoLbl">Estimate number</label><input id="jobno" type="text"></div>
+            <div class="field"><label for="jobno">Quote number</label><input id="jobno" type="text"></div>
             <div class="field"><label for="logoFile">Logo</label><input id="logoFile" type="file" accept="image/*"><span id="logoBox"></span></div>
           </div>
-          <h3 id="qsetH">Sales tax and dates</h3>
-          <div class="pgrid">
+          <h3 class="qonly">Labor, markup and terms</h3>
+          <div class="pgrid qonly">
             <div class="field qonly"><label for="lhrs">Labor hours</label><div class="unit"><input id="lhrs" type="number" inputmode="decimal" step="any" value="16"><span class="u">hr</span></div></div>
             <div class="field qonly"><label for="lrate">Labor rate</label><div class="unit pre"><input id="lrate" type="number" inputmode="decimal" step="any" value="65"><span class="u">$</span></div></div>
             <div class="field qonly"><label for="other">Permit, delivery, other</label><div class="unit pre"><input id="other" type="number" inputmode="decimal" step="any" value="0"><span class="u">$</span></div></div>
             <div class="field qonly"><label for="mark">Markup on everything</label><div class="unit"><input id="mark" type="number" inputmode="decimal" step="any" value="20"><span class="u">%</span></div></div>
             <div class="field"><label for="tax">Sales tax</label><div class="unit"><input id="tax" type="number" inputmode="decimal" step="any" value="0"><span class="u">%</span></div></div>
             <div class="field qonly"><label for="dep">Deposit</label><div class="unit"><input id="dep" type="number" inputmode="decimal" step="any" value="50"><span class="u">%</span></div></div>
-            <div class="field"><label for="valid" id="validLbl">Estimate good for</label><div class="unit"><input id="valid" type="number" inputmode="decimal" step="any" value="30"><span class="u">days</span></div></div>
+            <div class="field"><label for="valid">Quote good for</label><div class="unit"><input id="valid" type="number" inputmode="decimal" step="any" value="30"><span class="u">days</span></div></div>
           </div>
           <label class="check qonly"><input id="itemized" type="checkbox"> Show every material line on the quote</label>
           <div class="field qonly" style="margin-top:12px"><label for="terms">Terms and notes on the quote</label><textarea class="tx" id="terms">Price covers the materials and labor listed. Any change to the size, location or ground conditions found on site may change the price. Payment is due on completion unless agreed otherwise.</textarea></div>
@@ -2808,27 +2808,20 @@ function quoteTotals(m){
   const labor=g('lhrs')*g('lrate'), other=g('other');
   const mk=1+g('mark')/100;
   const sub=(mat+labor+other)*mk, tax=sub*g('tax')/100, total=sub+tax, deposit=total*g('dep')/100;
-  // the materials estimate: materials at the prices entered, plus sales tax, nothing else
-  const estTax=mat*g('tax')/100, estTotal=mat+estTax;
-  return {lines,mat,labor,other,mk,sub,tax,total,deposit,cost:mat+labor+other,profit:(mat+labor+other)*(mk-1),estTax,estTotal};
+  return {lines,mat,labor,other,mk,sub,tax,total,deposit,cost:mat+labor+other,profit:(mat+labor+other)*(mk-1)};
 }
 function scopeText(m){
   const i=m.inp, lay=({S:'straight',L:'L-turn',U:'U-turn'})[i.layout];
   return 'Build a '+lay+' wheelchair ramp, '+f(i.rise)+' total rise at a 1:'+i.run+' slope, '+f(i.width)+' clear width, for '+(m.heavy?'an electric or bariatric chair':'a manual chair')+', '+(m.out?'outdoors on '+(m.foot?'concrete footings':'posts set in concrete'):'indoors on a slab')+', with '+({none:'no handrails',one:'a '+(m.metal?'steel pipe':'wood')+' handrail on one side',both:(m.metal?'steel pipe':'wood')+' handrails on both sides'})[i.rail]+'. Pressure-treated and weather-rated materials are used where the ramp is outdoors. Footprint about '+f(m.fx)+' × '+f(m.fy)+'.';
 }
-// the default document: every material with its price and the total, no labor, markup or signatures
+// the default document: just the materials, each at the price entered, and the total
 function estimateHtml(m,q){
-  const g=id=>$(id).value.trim();
-  let h='<div class="qh"><div>'+(proLogo?'<img src="'+proLogo+'" alt="">':'')+'<div class="bn">'+escH(g('biz')||'Your business name')+'</div><div class="fine">'+[g('bphone'),g('bemail'),g('blic')].filter(Boolean).map(escH).join(' · ')+'</div></div>';
-  h+='<div style="text-align:right"><div class="bn">MATERIALS ESTIMATE</div><div class="fine">'+(g('jobno')?'No. '+escH(g('jobno'))+'<br>':'')+new Date().toLocaleDateString()+'<br>Good for '+escH(g('valid')||'30')+' days</div></div></div>';
-  h+='<p><b>Prepared for</b><br>'+escH(g('cust')||'Customer name')+'<br>'+escH(g('caddr')||'Job address')+'</p>';
-  h+='<h3>Project</h3><p>'+escH(scopeText(m))+'</p>';
-  h+='<h3>Materials</h3><table><thead><tr><th>Item</th><th class="n">Qty</th><th class="n">Each</th><th class="n">Amount</th></tr></thead><tbody>';
+  let h='<div class="qh"><div><div class="bn">MATERIALS ESTIMATE</div></div><div style="text-align:right" class="fine">Prices as of '+new Date().toLocaleDateString()+'</div></div>';
+  h+='<table><thead><tr><th>Item</th><th class="n">Qty</th><th class="n">Each</th><th class="n">Amount</th></tr></thead><tbody>';
   q.lines.forEach(l=>{h+='<tr><td>'+escH(l.label)+'</td><td class="n">'+l.qty+'</td><td class="n">'+money(l.price)+'</td><td class="n">'+money(l.qty*l.price)+'</td></tr>';});
-  if(q.estTax>0) h+='<tr><td>Materials subtotal</td><td></td><td></td><td class="n">'+money(q.mat)+'</td></tr><tr><td>Sales tax</td><td></td><td></td><td class="n">'+money(q.estTax)+'</td></tr>';
-  h+='<tr class="tot"><td>Estimated total</td><td></td><td></td><td class="n">'+money(q.estTotal)+'</td></tr>';
+  h+='<tr class="tot"><td>Total</td><td></td><td></td><td class="n">'+money(q.mat)+'</td></tr>';
   h+='</tbody></table>';
-  h+='<p class="fine">Materials only, at the prices listed. Labor, delivery and permits are not included. Store prices change, so confirm them before buying.</p>';
+  h+='<p class="fine">Materials only, at the prices listed. Store prices change, so confirm them before buying.</p>';
   return h;
 }
 function quoteHtml(m,q){
@@ -2870,16 +2863,13 @@ function renderPro(){
   ['proSheet','jobsSheet'].forEach(id=>{$(id).hidden=false;});
   const q=quoteTotals(m), full=$('fullQuote').checked;
   $('proSheet').classList.toggle('full',full);
-  $('qsetH').textContent=full?'Labor, markup and terms':'Sales tax and dates';
-  $('jobnoLbl').textContent=full?'Quote number':'Estimate number';
-  $('validLbl').textContent=full?'Quote good for':'Estimate good for';
   $('printQuote').textContent=full?'Print or save quote as PDF':'Print or save estimate as PDF';
-  $('qmodeNote').textContent=full?'This makes a full quote: materials, labor, markup, tax, deposit, your terms and signature lines. Untick the box to go back to a materials estimate.':'Right now this makes a materials estimate: every material at your prices, with the total. Tick the box to turn it into a full quote.';
+  $('qmodeNote').textContent=full?'This makes a full quote with your business and customer details, materials, labor, markup, tax, deposit, terms and signature lines. Untick the box to go back to a materials estimate.':'Right now this is a materials estimate: every material at your prices, and the total. Tick the box to make a full quote.';
   $('quoteDoc').innerHTML=full?quoteHtml(m,q):estimateHtml(m,q);
   $('quoteDoc').setAttribute('aria-label',full?'Quote preview':'Materials estimate preview');
   $('costBox').innerHTML=full
     ?'<p class="cap"><b>Your numbers (not on the quote):</b> cost '+money(q.cost)+' (materials '+money(q.mat)+', labor '+money(q.labor)+', other '+money(q.other)+'), markup adds '+money(q.profit)+', quote total '+money(q.total)+'.</p>'
-    :'<p class="cap"><b>Materials at your prices:</b> '+money(q.mat)+(q.estTax>0?', plus '+money(q.estTax)+' sales tax':'')+', estimate total '+money(q.estTotal)+'. No labor or markup is included.</p>';
+    :'<p class="cap"><b>Materials at your prices:</b> '+money(q.mat)+'. No labor, markup or tax is included.</p>';
   $('packetCover').innerHTML=packetCoverHtml(m);
   saveProSettings();
 }
