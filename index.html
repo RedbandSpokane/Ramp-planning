@@ -328,6 +328,9 @@ input[type=text]:focus-visible,input[type=email]:focus-visible,input[type=tel]:f
 .jobs .jn small{display:block;color:var(--muted)}
 .btn.sm{min-height:36px;padding:0 12px;font-size:.88rem}
 .logoPrev{max-height:56px;max-width:200px;display:block;margin:6px 0}
+#proSheet:not(.full) .qonly{display:none}
+.qmode{border:1px solid var(--line);border-radius:6px;padding:8px 14px 2px;margin:0 0 14px;background:var(--surface)}
+.qmode .check{font-weight:600}
 #quoteDoc{background:#fff;color:#111;border:1px solid var(--line);border-radius:6px;padding:28px;max-width:820px;font-size:.95rem;line-height:1.45}
 #quoteDoc h3{font-size:1.1rem;margin:20px 0 6px;color:#111}
 #quoteDoc .qh{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:12px}
@@ -582,6 +585,10 @@ input[type=text]:focus-visible,input[type=email]:focus-visible,input[type=tel]:f
       <section class="sheet proOnly" id="proSheet" hidden>
         <h2>Quote</h2>
         <div class="noprint" id="proBox">
+          <div class="qmode">
+            <label class="check"><input id="fullQuote" type="checkbox"> Full quote: add labor, markup, deposit, terms and signature lines</label>
+            <p class="cap" id="qmodeNote"></p>
+          </div>
           <h3>Your business and the customer<small>saved on this device only</small></h3>
           <div class="pgrid">
             <div class="field"><label for="biz">Business name</label><input id="biz" type="text" autocomplete="organization"></div>
@@ -590,29 +597,29 @@ input[type=text]:focus-visible,input[type=email]:focus-visible,input[type=tel]:f
             <div class="field"><label for="blic">License or insurance line</label><input id="blic" type="text"></div>
             <div class="field"><label for="cust">Customer</label><input id="cust" type="text"></div>
             <div class="field"><label for="caddr">Job address</label><input id="caddr" type="text"></div>
-            <div class="field"><label for="jobno">Quote number</label><input id="jobno" type="text"></div>
+            <div class="field"><label for="jobno" id="jobnoLbl">Estimate number</label><input id="jobno" type="text"></div>
             <div class="field"><label for="logoFile">Logo</label><input id="logoFile" type="file" accept="image/*"><span id="logoBox"></span></div>
           </div>
-          <h3>Labor, markup and terms</h3>
+          <h3 id="qsetH">Sales tax and dates</h3>
           <div class="pgrid">
-            <div class="field"><label for="lhrs">Labor hours</label><div class="unit"><input id="lhrs" type="number" inputmode="decimal" step="any" value="16"><span class="u">hr</span></div></div>
-            <div class="field"><label for="lrate">Labor rate</label><div class="unit pre"><input id="lrate" type="number" inputmode="decimal" step="any" value="65"><span class="u">$</span></div></div>
-            <div class="field"><label for="other">Permit, delivery, other</label><div class="unit pre"><input id="other" type="number" inputmode="decimal" step="any" value="0"><span class="u">$</span></div></div>
-            <div class="field"><label for="mark">Markup on everything</label><div class="unit"><input id="mark" type="number" inputmode="decimal" step="any" value="20"><span class="u">%</span></div></div>
+            <div class="field qonly"><label for="lhrs">Labor hours</label><div class="unit"><input id="lhrs" type="number" inputmode="decimal" step="any" value="16"><span class="u">hr</span></div></div>
+            <div class="field qonly"><label for="lrate">Labor rate</label><div class="unit pre"><input id="lrate" type="number" inputmode="decimal" step="any" value="65"><span class="u">$</span></div></div>
+            <div class="field qonly"><label for="other">Permit, delivery, other</label><div class="unit pre"><input id="other" type="number" inputmode="decimal" step="any" value="0"><span class="u">$</span></div></div>
+            <div class="field qonly"><label for="mark">Markup on everything</label><div class="unit"><input id="mark" type="number" inputmode="decimal" step="any" value="20"><span class="u">%</span></div></div>
             <div class="field"><label for="tax">Sales tax</label><div class="unit"><input id="tax" type="number" inputmode="decimal" step="any" value="0"><span class="u">%</span></div></div>
-            <div class="field"><label for="dep">Deposit</label><div class="unit"><input id="dep" type="number" inputmode="decimal" step="any" value="50"><span class="u">%</span></div></div>
-            <div class="field"><label for="valid">Quote good for</label><div class="unit"><input id="valid" type="number" inputmode="decimal" step="any" value="30"><span class="u">days</span></div></div>
+            <div class="field qonly"><label for="dep">Deposit</label><div class="unit"><input id="dep" type="number" inputmode="decimal" step="any" value="50"><span class="u">%</span></div></div>
+            <div class="field"><label for="valid" id="validLbl">Estimate good for</label><div class="unit"><input id="valid" type="number" inputmode="decimal" step="any" value="30"><span class="u">days</span></div></div>
           </div>
-          <label class="check"><input id="itemized" type="checkbox"> Show every material line on the quote</label>
-          <div class="field" style="margin-top:12px"><label for="terms">Terms and notes on the quote</label><textarea class="tx" id="terms">Price covers the materials and labor listed. Any change to the size, location or ground conditions found on site may change the price. Payment is due on completion unless agreed otherwise.</textarea></div>
+          <label class="check qonly"><input id="itemized" type="checkbox"> Show every material line on the quote</label>
+          <div class="field qonly" style="margin-top:12px"><label for="terms">Terms and notes on the quote</label><textarea class="tx" id="terms">Price covers the materials and labor listed. Any change to the size, location or ground conditions found on site may change the price. Payment is due on completion unless agreed otherwise.</textarea></div>
           <details class="how" id="priceDet">
             <summary>Material prices (starting figures, replace with your supplier's)</summary>
-            <p class="cap">These are placeholders so the quote works straight away. They are not current store prices. Enter what you actually pay. Lumber is priced per foot, so a 12 ft board costs 12 times the figure.</p>
+            <p class="cap">These are placeholders so the estimate works straight away. They are not current store prices. Enter what you actually pay. Lumber is priced per foot, so a 12 ft board costs 12 times the figure.</p>
             <div class="pgrid" id="priceGrid"></div>
             <button type="button" class="btn ghost sm" id="priceReset">Reset prices to the starting figures</button>
           </details>
           <div id="costBox" class="noprint"></div>
-          <div class="actions"><button type="button" class="btn" id="printQuote">Print or save quote as PDF</button><span class="mut" id="quoteMsg" role="status"></span></div>
+          <div class="actions"><button type="button" class="btn" id="printQuote">Print or save estimate as PDF</button><span class="mut" id="quoteMsg" role="status"></span></div>
         </div>
         <div id="quoteDoc" aria-label="Quote preview"></div>
       </section>
@@ -643,7 +650,7 @@ input[type=text]:focus-visible,input[type=email]:focus-visible,input[type=tel]:f
             <li>Handrails: wood is a round rail on 4x4 posts; metal is 1¼ inch galvanized pipe on pipe posts with slip-on fittings. Either way the rail is 36 inches above the deck on posts bolted to the outside of the stringers about every 4 feet. Each rail runs level for 12 inches past the top and bottom of a ramp. Platform edges get rails only when you pick both sides.</li>
             <li>The curbs are 2x4s on edge, screwed on top of the deck at both edges. Deck width is the clear width plus 3 inches.</li>
             <li>Lumber counts come from packing every cut into 8 to 16 foot boards, then shrinking each board to the shortest stock length that still holds its cuts. Buy one or two extra boards for mistakes.</li>
-            <li>Code mode: the Code check measures the ramp against the common ADA figures (1:12 slope, 30 inches of rise per run, 60 inch landings, 36 inch width, rails 34 to 38 inches high, 2 inch curbs). Turning the mode on holds the slope at 1:12 or gentler and puts rails on both sides. The quote prices come from the starting figures you edit, plus your labor and markup. Nothing is sent anywhere. Saved jobs and prices stay in this browser.</li>
+            <li>Code mode: the Code check measures the ramp against the common ADA figures (1:12 slope, 30 inches of rise per run, 60 inch landings, 36 inch width, rails 34 to 38 inches high, 2 inch curbs). Turning the mode on holds the slope at 1:12 or gentler and puts rails on both sides. The Quote section makes a materials estimate from the starting prices you edit; tick Full quote to add your labor, markup, deposit and terms. Nothing is sent anywhere. Saved jobs and prices stay in this browser.</li>
             <li>This is a planning tool. It is not engineered, and it does not check a chair and rider against your lumber. For a heavy power chair or a tall platform, have someone qualified look at the design.</li>
           </ul>
         </details>
@@ -2801,11 +2808,28 @@ function quoteTotals(m){
   const labor=g('lhrs')*g('lrate'), other=g('other');
   const mk=1+g('mark')/100;
   const sub=(mat+labor+other)*mk, tax=sub*g('tax')/100, total=sub+tax, deposit=total*g('dep')/100;
-  return {lines,mat,labor,other,mk,sub,tax,total,deposit,cost:mat+labor+other,profit:(mat+labor+other)*(mk-1)};
+  // the materials estimate: materials at the prices entered, plus sales tax, nothing else
+  const estTax=mat*g('tax')/100, estTotal=mat+estTax;
+  return {lines,mat,labor,other,mk,sub,tax,total,deposit,cost:mat+labor+other,profit:(mat+labor+other)*(mk-1),estTax,estTotal};
 }
 function scopeText(m){
   const i=m.inp, lay=({S:'straight',L:'L-turn',U:'U-turn'})[i.layout];
   return 'Build a '+lay+' wheelchair ramp, '+f(i.rise)+' total rise at a 1:'+i.run+' slope, '+f(i.width)+' clear width, for '+(m.heavy?'an electric or bariatric chair':'a manual chair')+', '+(m.out?'outdoors on '+(m.foot?'concrete footings':'posts set in concrete'):'indoors on a slab')+', with '+({none:'no handrails',one:'a '+(m.metal?'steel pipe':'wood')+' handrail on one side',both:(m.metal?'steel pipe':'wood')+' handrails on both sides'})[i.rail]+'. Pressure-treated and weather-rated materials are used where the ramp is outdoors. Footprint about '+f(m.fx)+' × '+f(m.fy)+'.';
+}
+// the default document: every material with its price and the total, no labor, markup or signatures
+function estimateHtml(m,q){
+  const g=id=>$(id).value.trim();
+  let h='<div class="qh"><div>'+(proLogo?'<img src="'+proLogo+'" alt="">':'')+'<div class="bn">'+escH(g('biz')||'Your business name')+'</div><div class="fine">'+[g('bphone'),g('bemail'),g('blic')].filter(Boolean).map(escH).join(' · ')+'</div></div>';
+  h+='<div style="text-align:right"><div class="bn">MATERIALS ESTIMATE</div><div class="fine">'+(g('jobno')?'No. '+escH(g('jobno'))+'<br>':'')+new Date().toLocaleDateString()+'<br>Good for '+escH(g('valid')||'30')+' days</div></div></div>';
+  h+='<p><b>Prepared for</b><br>'+escH(g('cust')||'Customer name')+'<br>'+escH(g('caddr')||'Job address')+'</p>';
+  h+='<h3>Project</h3><p>'+escH(scopeText(m))+'</p>';
+  h+='<h3>Materials</h3><table><thead><tr><th>Item</th><th class="n">Qty</th><th class="n">Each</th><th class="n">Amount</th></tr></thead><tbody>';
+  q.lines.forEach(l=>{h+='<tr><td>'+escH(l.label)+'</td><td class="n">'+l.qty+'</td><td class="n">'+money(l.price)+'</td><td class="n">'+money(l.qty*l.price)+'</td></tr>';});
+  if(q.estTax>0) h+='<tr><td>Materials subtotal</td><td></td><td></td><td class="n">'+money(q.mat)+'</td></tr><tr><td>Sales tax</td><td></td><td></td><td class="n">'+money(q.estTax)+'</td></tr>';
+  h+='<tr class="tot"><td>Estimated total</td><td></td><td></td><td class="n">'+money(q.estTotal)+'</td></tr>';
+  h+='</tbody></table>';
+  h+='<p class="fine">Materials only, at the prices listed. Labor, delivery and permits are not included. Store prices change, so confirm them before buying.</p>';
+  return h;
 }
 function quoteHtml(m,q){
   const g=id=>$(id).value.trim(); const it=$('itemized').checked;
@@ -2844,15 +2868,24 @@ function packetCoverHtml(m){
 function renderPro(){
   const m=lastModel; if(!m) return;
   ['proSheet','jobsSheet'].forEach(id=>{$(id).hidden=false;});
-  const q=quoteTotals(m);
-  $('quoteDoc').innerHTML=quoteHtml(m,q);
-  $('costBox').innerHTML='<p class="cap"><b>Your numbers (not on the quote):</b> cost '+money(q.cost)+' (materials '+money(q.mat)+', labor '+money(q.labor)+', other '+money(q.other)+'), markup adds '+money(q.profit)+', quote total '+money(q.total)+'.</p>';
+  const q=quoteTotals(m), full=$('fullQuote').checked;
+  $('proSheet').classList.toggle('full',full);
+  $('qsetH').textContent=full?'Labor, markup and terms':'Sales tax and dates';
+  $('jobnoLbl').textContent=full?'Quote number':'Estimate number';
+  $('validLbl').textContent=full?'Quote good for':'Estimate good for';
+  $('printQuote').textContent=full?'Print or save quote as PDF':'Print or save estimate as PDF';
+  $('qmodeNote').textContent=full?'This makes a full quote: materials, labor, markup, tax, deposit, your terms and signature lines. Untick the box to go back to a materials estimate.':'Right now this makes a materials estimate: every material at your prices, with the total. Tick the box to turn it into a full quote.';
+  $('quoteDoc').innerHTML=full?quoteHtml(m,q):estimateHtml(m,q);
+  $('quoteDoc').setAttribute('aria-label',full?'Quote preview':'Materials estimate preview');
+  $('costBox').innerHTML=full
+    ?'<p class="cap"><b>Your numbers (not on the quote):</b> cost '+money(q.cost)+' (materials '+money(q.mat)+', labor '+money(q.labor)+', other '+money(q.other)+'), markup adds '+money(q.profit)+', quote total '+money(q.total)+'.</p>'
+    :'<p class="cap"><b>Materials at your prices:</b> '+money(q.mat)+(q.estTax>0?', plus '+money(q.estTax)+' sales tax':'')+', estimate total '+money(q.estTotal)+'. No labor or markup is included.</p>';
   $('packetCover').innerHTML=packetCoverHtml(m);
   saveProSettings();
 }
 function saveProSettings(){
   try{
-    const o={logo:proLogo,itemized:$('itemized').checked,prices:prices()};
+    const o={logo:proLogo,itemized:$('itemized').checked,fullQuote:$('fullQuote').checked,prices:prices()};
     PRO_TXT.concat(PRO_NUM).forEach(id=>o[id]=$(id).value);
     localStorage.setItem('rampPlanner.pro.v1',JSON.stringify(o));
   }catch(e){}
@@ -2862,6 +2895,7 @@ function loadProSettings(){
     const o=JSON.parse(localStorage.getItem('rampPlanner.pro.v1')||'null'); if(!o||typeof o!=='object') return;
     PRO_TXT.concat(PRO_NUM).forEach(id=>{if(typeof o[id]==='string') $(id).value=o[id];});
     $('itemized').checked=!!o.itemized;
+    $('fullQuote').checked=!!o.fullQuote;
     if(typeof o.logo==='string'&&/^data:image\//.test(o.logo)) proLogo=o.logo;
     if(o.prices) PRICE_DEF.forEach(d=>{if(isFinite(o.prices[d[0]])) $('pr_'+d[0]).value=o.prices[d[0]];});
   }catch(e){}
